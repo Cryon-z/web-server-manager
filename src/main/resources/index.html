@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web服务器管理界面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+        
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .status-card h2 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-card h2 i {
+            color: #667eea;
+        }
+        
+        .status-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .status-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .status-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .status-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .upload-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 5px solid #28a745;
+        }
+        
+        .upload-card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .upload-card h2 i {
+            color: #28a745;
+        }
+        
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+            background: white;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .upload-area.active {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .upload-hint {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(90deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4);
+        }
+        
+        .upload-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .progress-text {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .result-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .info-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 5px solid #17a2b8;
+        }
+        
+        .info-card h2 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .info-card h2 i {
+            color: #17a2b8;
+        }
+        
+        .info-list {
+            list-style: none;
+        }
+        
+        .info-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .info-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            color: #666;
+        }
+        
+        .info-value {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .status-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Web服务器管理界面</h1>
+    <p class="subtitle">上传新的HTML文件以替换当前页面并重启服务器</p>
+
+    <div class="status-card">
+        <h2><i>📊</i> 服务器状态</h2>
+        <div class="status-info">
+            <div class="status-item">
+                <span class="status-label">服务器地址</span>
+                <span class="status-value" id="serverAddress">加载中...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">运行状态</span>
+                <span class="status-value" id="serverStatus">加载中...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">最后更新</span>
+                <span class="status-value" id="lastUpdate">加载中...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="upload-card">
+        <h2><i>📤</i> 上传新页面</h2>
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">点击选择文件或拖拽文件到这里</div>
+            <div class="upload-hint">仅支持 .html 文件，上传后将自动替换当前页面并重启服务器</div>
+        </div>
+        <input type="file" id="fileInput" accept=".html">
+        <button class="upload-btn" id="uploadBtn" disabled>上传文件</button>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+            <div class="progress-text" id="progressText">准备上传...</div>
+        </div>
+
+        <div class="result-message" id="resultMessage"></div>
+    </div>
+
+    <div class="info-card">
+        <h2><i>ℹ️</i> 使用说明</h2>
+        <ul class="info-list">
+            <li>
+                <span class="info-label">支持的格式</span>
+                <span class="info-value">.html 文件</span>
+            </li>
+            <li>
+                <span class="info-label">文件大小限制</span>
+                <span class="info-value">10 MB</span>
+            </li>
+            <li>
+                <span class="info-label">上传后操作</span>
+                <span class="info-value">自动替换当前页面并重启服务器</span>
+            </li>
+            <li>
+                <span class="info-label">文件重命名流程</span>
+                <span class="info-value">index-update.html → index.html</span>
+            </li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        <p>Web服务器管理器 v1.0 &copy; 2025</p>
+    </div>
+</div>
+
+<script>
+    // 获取DOM元素
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const resultMessage = document.getElementById('resultMessage');
+    const serverAddress = document.getElementById('serverAddress');
+    const serverStatus = document.getElementById('serverStatus');
+    const lastUpdate = document.getElementById('lastUpdate');
+
+    // 初始化页面信息
+    function initPage() {
+        serverAddress.textContent = window.location.host;
+        serverStatus.textContent = '运行中';
+        serverStatus.style.color = '#28a745';
+        lastUpdate.textContent = new Date().toLocaleString('zh-CN');
+    }
+
+    // 初始化拖放功能
+    function initDragAndDrop() {
+        // 防止默认拖放行为
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        // 高亮拖放区域
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        // 处理文件放置
+        uploadArea.addEventListener('drop', handleDrop, false);
+
+        // 点击上传区域触发文件选择
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // 监听文件选择变化
+        fileInput.addEventListener('change', handleFileSelect);
+    }
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    function highlight() {
+        uploadArea.classList.add('active');
+    }
+
+    function unhighlight() {
+        uploadArea.classList.remove('active');
+    }
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+
+        if (files.length) {
+            handleFiles(files);
+        }
+    }
+
+    function handleFileSelect() {
+        if (fileInput.files.length) {
+            handleFiles(fileInput.files);
+        }
+    }
+
+    function handleFiles(files) {
+        const file = files[0];
+
+        // 检查文件类型
+        if (file.type !== 'text/html' && !file.name.toLowerCase().endsWith('.html')) {
+            showResult('错误：请选择HTML文件', 'error');
+            return;
+        }
+
+        // 检查文件大小 (限制为10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            showResult('错误：文件大小不能超过10MB', 'error');
+            return;
+        }
+
+        // 更新上传区域显示
+        uploadArea.innerHTML = `
+            <div class="upload-icon">📄</div>
+            <div class="upload-text">${file.name}</div>
+            <div class="upload-hint">文件大小: ${(file.size / 1024).toFixed(2)} KB</div>
+        `;
+
+        // 启用上传按钮
+        uploadBtn.disabled = false;
+
+        // 设置上传按钮点击事件
+        uploadBtn.onclick = () => uploadFile(file);
+    }
+
+    function uploadFile(file) {
+        // 禁用上传按钮
+        uploadBtn.disabled = true;
+
+        // 显示进度条
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressText.textContent = '准备上传...';
+
+        // 创建FormData对象
+        const formData = new FormData();
+        formData.append('htmlFile', file);
+
+        // 创建XMLHttpRequest对象
+        const xhr = new XMLHttpRequest();
+
+        // 监听上传进度
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                progressBar.style.width = percentComplete + '%';
+                progressText.textContent = `上传中: ${Math.round(percentComplete)}%`;
+            }
+        });
+
+        // 监听上传完成
+        xhr.addEventListener('load', () => {
+            if (xhr.status === 200) {
+                progressBar.style.width = '100%';
+                progressText.textContent = '上传完成!';
+
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        showResult('上传成功! 服务器正在重启，页面即将刷新...', 'success');
+
+                        // 延迟刷新页面以等待服务器重启
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 3000);
+                    } else {
+                        showResult('上传失败: ' + response.message, 'error');
+                        uploadBtn.disabled = false;
+                    }
+                } catch (e) {
+                    showResult('上传成功! 服务器正在重启，页面即将刷新...', 'success');
+
+                    // 延迟刷新页面以等待服务器重启
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                }
+            } else {
+                showResult('上传失败: 服务器错误 ' + xhr.status, 'error');
+                uploadBtn.disabled = false;
+            }
+        });
+
+        // 监听上传错误
+        xhr.addEventListener('error', () => {
+            showResult('上传失败: 网络错误', 'error');
+            uploadBtn.disabled = false;
+        });
+
+        // 发送请求
+        xhr.open('POST', '/upload', true);
+        xhr.send(formData);
+    }
+
+    function showResult(message, type) {
+        resultMessage.textContent = message;
+        resultMessage.className = 'result-message ' + type;
+        resultMessage.style.display = 'block';
+
+        // 5秒后自动隐藏成功消息
+        if (type === 'success') {
+            setTimeout(() => {
+                resultMessage.style.display = 'none';
+            }, 5000);
+        }
+    }
+
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', () => {
+        initPage();
+        initDragAndDrop();
+    });
+</script>
+</body>
+</html>

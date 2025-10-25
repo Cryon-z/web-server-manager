@@ -1,6 +1,7 @@
 package com.webserver;
 
 import java.util.Scanner;
+import java.io.*;
 
 public class ServerManager {
     private final ConfigManager configManager;
@@ -10,11 +11,52 @@ public class ServerManager {
     private boolean running = true;
 
     public ServerManager() {
+        // 确保必要的资源文件存在
+        ensureResources();
+
         configManager = new ConfigManager();
         int port = configManager.getWebPort();
         webServer = new WebServer(port);
         scriptRunner = new ScriptRunner();
         webMonitor = new WebStatusMonitor(configManager, webServer);
+    }
+
+    /**
+     * 确保必要的资源文件存在，如果不存在则从JAR中提取
+     */
+    private void ensureResources() {
+        File indexFile = new File("index.html");
+        if (!indexFile.exists()) {
+            System.out.println("ℹ 未找到index.html，从JAR资源中提取...");
+            extractResource("index.html", "index.html");
+        }
+
+        // 可以在这里添加其他需要提取的资源文件
+    }
+
+    /**
+     * 从JAR中提取资源文件到当前目录
+     */
+    private void extractResource(String resourcePath, String outputPath) {
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath);
+             FileOutputStream outputStream = new FileOutputStream(outputPath)) {
+
+            if (inputStream == null) {
+                System.err.println("✗ 无法找到资源文件: " + resourcePath);
+                return;
+            }
+
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+
+            System.out.println("✓ 已提取资源文件: " + outputPath);
+
+        } catch (IOException e) {
+            System.err.println("✗ 提取资源文件失败: " + e.getMessage());
+        }
     }
 
     public void start() {
@@ -163,18 +205,23 @@ public class ServerManager {
         String[] parts = argument.split(" ", 2);
         String subCommand = parts[0].toLowerCase();
 
-        if ("show".equals(subCommand)) {
-            showConfig();
-        } else if ("set".equals(subCommand) && parts.length > 1) {
-            String[] keyValue = parts[1].split(" ", 2);
-            if (keyValue.length == 2) {
-                setConfig(keyValue[0], keyValue[1]);
-            } else {
-                System.out.println("配置设置格式错误");
-                System.out.println("正确格式: config set <key> <value>");
-            }
-        } else {
-            System.out.println("未知的config子命令: " + subCommand);
+        switch (subCommand) {
+            case "show":
+                showConfig();
+                break;
+            case "set":
+                if (parts.length > 1) {
+                    String[] keyValue = parts[1].split(" ", 2);
+                    if (keyValue.length == 2) {
+                        setConfig(keyValue[0], keyValue[1]);
+                    } else {
+                        System.out.println("配置设置格式错误");
+                        System.out.println("正确格式: config set <key> <value>");
+                    }
+                }
+                break;
+            default:
+                System.out.println("未知的config子命令: " + subCommand);
         }
     }
 
